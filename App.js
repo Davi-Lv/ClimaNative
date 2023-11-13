@@ -1,33 +1,48 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView } from 'react-native';
-import Icon from 'react-native-vector-icons/FontAwesome';
-import Icon2 from 'react-native-vector-icons/Entypo';
+import { View, Text, StyleSheet, ScrollView, Image } from 'react-native';
+import FontAwesome from 'react-native-vector-icons/FontAwesome';
+import Entypo from 'react-native-vector-icons/Entypo';
 import Feather from 'react-native-vector-icons/Feather';
 import Geolocation from 'react-native-geolocation-service';
 import axios from 'axios';
 
 const App = () => {
   const API_KEY = 'd0df428ee113c87d7cbc6b14d7b0e3a8';
-
   const [currentTemperature, setCurrentTemperature] = useState(null);
   const [locationName, setLocationName] = useState(null);
   const [umidade, setUmidade] = useState(null);
   const [hPa, setHPa] = useState(null);
   const [VelocidadeVento, setVelocidadeVento] = useState(null);
-  const [IDtest, setIDtest] = useState(null);
+  const [weatherIcon, setWeatherIcon] = useState(null);
+  const [iconUrl, setIconUrl] = useState(null);
+  const [nuvens, setNuvens] = useState(null);
+  const [direcaoVento, setDirecaoVento] = useState(null);
+  const [tempMax, setTempMax] = useState(null);
+  const [tempMin, setTempMin] = useState(null);
+  const [hourlyForecast, setHourlyForecast] = useState([]);
 
   useEffect(() => {
     Geolocation.getCurrentPosition(
       position => {
-        axios.get(`https://api.openweathermap.org/data/2.5/weather?lat=${position.coords.latitude}&lon=${position.coords.longitude}&appid=${API_KEY}`)
+        axios.get(`https://api.openweathermap.org/data/2.5/forecast?lat=${position.coords.latitude}&lon=${position.coords.longitude}&appid=${API_KEY}`)
           .then(response => {
             console.log(response.data);
-            setCurrentTemperature(response.data.main.temp);
-            setLocationName(response.data.name);
-            setUmidade(response.data.main.humidity);
-            setHPa(response.data.main.pressure);
-            setVelocidadeVento(response.data.wind.speed);
-            setIDtest(response.data.main.humidity);
+            setCurrentTemperature(response.data.list[0].main.temp);
+            setLocationName(response.data.city.name);
+            setUmidade(response.data.list[0].main.humidity);
+            setHPa(response.data.list[0].main.pressure);
+            setVelocidadeVento(response.data.list[0].wind.speed);
+            setNuvens(response.data.list[0].clouds.all);
+            setDirecaoVento(response.data.list[0].wind.deg);
+            setTempMax(response.data.list[0].main.temp_max);
+            setTempMin(response.data.list[0].main.temp_min);
+
+            setWeatherIcon(response.data.list[0].weather[0].icon);
+            const newIconUrl = `https://openweathermap.org/img/wn/${response.data.list[0].weather[0].icon}@2x.png`;
+            setIconUrl(newIconUrl);
+
+            const hourlyData = response.data.list.slice(0, 4);
+            setHourlyForecast(hourlyData);
           })
           .catch(error => {
             console.log(error);
@@ -38,29 +53,43 @@ const App = () => {
     );
   }, []);
 
+  const getIconName = (direction) => {
+    if (direction >= 45 && direction < 135) {
+      return 'arrow-down';
+    } else if (direction >= 135 && direction < 225) {
+      return 'arrow-left';
+    } else if (direction >= 225 && direction < 315) {
+      return 'arrow-up';
+    } else {
+      return 'arrow-right';
+    }
+  };
+
   return (
     <View style={styles.container}>
       {/* Menu no topo */}
       <View style={styles.menu}>
         <View style={styles.iconWrapper}>
-          <Icon name="map-marker" size={24} color="white" style={styles.smallIcon} />
+          <FontAwesome name="map-marker" size={24} color="white" style={styles.smallIcon} />
         </View>
-        <Text style={styles.locationText}>{locationName || 'Carregando...'}</Text>
+        <Text style={styles.locationText}>{locationName}</Text>
         <View style={styles.iconWrapper}>
-          <Icon name="bell" size={24} color="white" style={styles.largeIcon} />
+          <FontAwesome name="bell" size={24} color="white" style={styles.largeIcon} />
         </View>
       </View>
 
-
       <View style={styles.header}>
-        <Icon name="sun-o" size={48} color="white" />
+        <Image
+          style={{ width: 150, height: 100 }}
+          source={{ uri: iconUrl }}
+        />
         <Text style={styles.currentTemperature}>{currentTemperature ? `${Math.round(currentTemperature - 273.15)}°C` : 'Loading...'}</Text>
-        <Text style={styles.locationText}>{IDtest || 'Carregando...'}</Text>
         <View style={styles.climaAtual}>
           <Text style={styles.tempo_tipo}>Precipitação</Text>
           <View style={styles.maxMin}>
-            <Text style={styles.maxMinText}>Máxima: 31°C</Text>
-            <Text style={styles.maxMinText}>Mínima: 25°C</Text>
+            {/* <Text style={styles.maxMinText}><Entypo name="cloud" size={24} color="white" /> {nuvens}%</Text>
+            <Text style={styles.maxMinText}><FontAwesome name={getIconName(direcaoVento)} size={24} color="white" /> {direcaoVento}°</Text>*/}
+            <Text style={styles.maxMinText}>Max.: {tempMax ? `${Math.round(tempMax - 273.15)}°` : '...'}  Min.: {tempMin ? `${Math.round(tempMin - 273.15)}°` : '...'} </Text>
           </View>
         </View>
       </View>
@@ -68,57 +97,34 @@ const App = () => {
       <View style={styles.weatherDetails2}>
         <View style={styles.detailRow}>
           <View style={styles.detailItem}>
-            <Icon2 name="water" size={24} color="white" style={styles.icon}/>
+            <Entypo name="water" size={20} color="white" style={styles.icon} />
             <Text style={styles.detailText}> {umidade || '...'}%</Text>
           </View>
           <View style={styles.detailItem}>
-            <Icon name="compress" size={24} color="white" style={styles.icon} />
+            <FontAwesome name="compress" size={20} color="white" style={styles.icon} />
             <Text style={styles.detailText}> {hPa || '...'}hPA</Text>
           </View>
           <View style={styles.detailItem}>
-            <Feather name="wind" size={24} color="white" style={styles.icon}/>
+            <Feather name="wind" size={20} color="white" style={styles.icon} />
             <Text style={styles.detailText}> {VelocidadeVento || '...'}m/s</Text>
           </View>
         </View>
       </View>
 
-      <View style={styles.weatherDetails2}>
-        <View style={styles.detailRow}>
-          <View style={styles.detailItem}>
-            <Icon2 name="water" size={24} color="white" style={styles.icon}/>
-            <Text style={styles.detailText}> {umidade || '...'}%</Text>
-          </View>
-        </View>
-      </View>
-
       <View style={styles.hourlyForecast}>
-        <Text style={styles.forecastTitle}>Hoje</Text>
-        <View style={styles.hourlyForecastContainer}>
-          <View style={styles.hourBlock}>
-            <Text style={styles.hourText}>11:00</Text>
-            <Icon name="sun-o" size={38} color="white" />
-            <Text style={styles.detailText}>31°C</Text>
-          </View>
-          <View style={styles.hourBlock}>
-            <Text style={styles.hourText}>12:00</Text>
-            <Icon name="sun-o" size={38} color="white" />
-            <Text style={styles.detailText}>32°C</Text>
-          </View>
-          <View style={styles.hourBlock}>
-            <Text style={styles.hourText}>13:00</Text>
-            <Icon name="sun-o" size={38} color="white" />
-            <Text style={styles.detailText}>33°C</Text>
-          </View>
-          <View style={styles.hourBlock}>
-            <Text style={styles.hourText}>14:00</Text>
-            <Icon name="sun-o" size={38} color="white" />
-            <Text style={styles.detailText}>34°C</Text>
-          </View>
-        </View>
+        <Text style={styles.forecastTitle}>Clima nas Próximas Horas</Text>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+          {hourlyForecast.map((item, index) => (
+            <View key={index} style={styles.hourBlock}>
+              <Text style={styles.hourText}>{item.dt_txt.split(' ')[1].slice(0, -3)}</Text>
+              <Text style={styles.detailText}>{`${Math.round(item.main.temp - 273.15)}°C`}</Text>
+            </View>
+          ))}
+        </ScrollView>
       </View>
 
       <View style={styles.dailyForecast}>
-        <Text style={styles.forecastTitle}>Previsão para os Próximos Dias</Text>
+        <Text style={styles.forecastTitle}></Text>
       </View>
     </View>
   );
@@ -127,7 +133,7 @@ const App = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: 'darkblue',
+    backgroundColor: '#1E3250',
     justifyContent: 'center',
     alignItems: 'center',
     padding: 20,
@@ -142,8 +148,7 @@ const styles = StyleSheet.create({
   },
   detailRow: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginTop: 20,
+    justifyContent: 'space-evenly',
     width: '100%',
     alignItems: 'center',
   },
@@ -163,9 +168,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   weatherDetails2: {
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    borderRadius: 8,
+    padding: 8,
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginTop: 20,
+    marginTop: 15,
     width: '90%',
     alignItems: 'center',
   },
@@ -173,6 +181,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   currentTemperature: {
+    fontWeight: 'bold',
     fontSize: 48,
     color: 'white',
   },
@@ -187,11 +196,14 @@ const styles = StyleSheet.create({
   hourlyForecast: {
     marginTop: 20,
     flex: 1,
-    width: '90%',
+    width: '100%',
   },
   forecastTitle: {
-    fontSize: 24,
     color: 'white',
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginBottom: 10,
+    alignSelf: 'center',
   },
   dailyForecast: {
     marginTop: 20,
@@ -235,24 +247,29 @@ const styles = StyleSheet.create({
   maxMinText: {
     fontSize: 16,
     color: 'white',
-    marginHorizontal: 10,
   },
   hourlyForecastContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
   },
+  hourText: {
+    fontSize: 16,
+    color: 'white',
+    marginBottom: 5,
+  },
+  hourlyForecast: {
+    marginTop: 20,
+  },
   hourBlock: {
     alignItems: 'center',
-  },
-  hourText: {
-    fontSize: 18,
-    color: 'white',
+    marginHorizontal: 20,
   },
   detailText: {
-    fontSize: 18,
+    fontSize: 16,
     color: 'white',
   },
+
 });
 
 export default App;
