@@ -12,7 +12,7 @@
     "@expo/webpack-config": "^19.0.0",
     "@react-navigation/native": "^6.1.9",
     "@react-navigation/stack": "^6.3.20",
-    "axios": "^1.6.1",
+    "axios": "^1.13.5",
     "axios-proxy": "^0.0.1-security",
     "expo": "~49.0.15",
     "expo-cli": "^6.3.10",
